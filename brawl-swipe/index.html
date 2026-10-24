@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+	<title>Brawl Swipe</title>
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Lilita+One&family=Nunito:wght@700;900&display=swap" rel="stylesheet">
+	<link rel="stylesheet" href="style.css">
+</head>
+<body>
+	<div class="bg-rays" aria-hidden="true"></div>
+	<canvas id="sparks" aria-hidden="true"></canvas>
+
+	<header class="topbar">
+		<div class="trophies" title="Trophies">
+			<span class="trophy-icon">🏆</span>
+			<span id="trophyCount">0</span>
+		</div>
+		<h1 class="logo">BRAWL<span>SWIPE</span></h1>
+		<button class="team-btn" id="teamBtn" aria-label="Open your team">
+			<span>⚔️</span><b id="teamCount">0</b>
+		</button>
+	</header>
+
+	<main class="arena">
+		<div class="deck" id="deck"></div>
+
+		<div class="empty" id="empty" hidden>
+			<div class="empty-icon">💤</div>
+			<h2>No more brawlers nearby!</h2>
+			<p>Shake the map to find a fresh squad.</p>
+			<button class="chunky yellow" id="reshuffle">RESHUFFLE</button>
+		</div>
+	</main>
+
+	<nav class="controls">
+		<button class="ctrl nope" id="btnNope" aria-label="Pass (left arrow)">✖</button>
+		<button class="ctrl super" id="btnSuper" aria-label="Super like (up arrow)">★</button>
+		<button class="ctrl like" id="btnLike" aria-label="Recruit (right arrow)">♥</button>
+	</nav>
+	<p class="hint">Drag cards · ← pass · ↑ super · → recruit</p>
+
+	<!-- Match overlay -->
+	<div class="match" id="match" hidden>
+		<div class="match-burst"></div>
+		<div class="match-inner">
+			<h2 class="match-title"><span>IT'S A</span>BRAWL MATCH!</h2>
+			<div class="versus">
+				<div class="vs-card you"><div class="vs-avatar">😎</div><b>YOU</b></div>
+				<div class="vs-bolt">⚡</div>
+				<div class="vs-card them" id="matchThem"></div>
+			</div>
+			<p class="match-line" id="matchLine"></p>
+			<div class="match-actions">
+				<button class="chunky yellow" id="matchBattle">BATTLE TOGETHER</button>
+				<button class="chunky blue" id="matchKeep">KEEP SWIPING</button>
+			</div>
+		</div>
+	</div>
+
+	<!-- Battle overlay -->
+	<div class="battle" id="battle" hidden>
+		<div class="battle-inner">
+			<div class="battle-banner" id="battleBanner">SHOWDOWN!</div>
+			<div class="battle-field">
+				<div class="fighter left" id="fLeft"></div>
+				<div class="fighter right" id="fRight"></div>
+			</div>
+			<div class="battle-result" id="battleResult"></div>
+		</div>
+	</div>
+
+	<!-- Team drawer -->
+	<aside class="drawer" id="drawer" aria-hidden="true">
+		<div class="drawer-head">
+			<h2>YOUR SQUAD</h2>
+			<button class="close" id="drawerClose" aria-label="Close">✖</button>
+		</div>
+		<ul class="team-list" id="teamList"></ul>
+		<p class="team-empty" id="teamEmpty">Swipe right to recruit brawlers!</p>
+	</aside>
+	<div class="scrim" id="scrim"></div>
+
+	<script src="app.js"></script>
+</body>
+</html>
