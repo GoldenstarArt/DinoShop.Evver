@@ -1,0 +1,994 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Grind &amp; Groove</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a session board. Calendar track on the left, a "now playing" card + chat on the right; stacks on phones. */
+:root{
+  --bg:#EDF0F4; --surface:#FFFFFF; --surface-2:#E2E7EE; --ink:#16202B; --muted:#596577; --line:#D2D9E2;
+  --accent:#A86B12; --accent-soft:#F4E3C4; --accent-ink:#FFFFFF;
+  --math:#2B66C9; --prog:#178A5E; --english:#B95E12; --pbl:#7447C6; --reward:#C93371; --break:#7D8796; --life:#596577; --busy:#4B5563;
+  --good:#178A5E;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  --hour:58px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E131A; --surface:#151C26; --surface-2:#1D2632; --ink:#E5EAF1; --muted:#93A0B3; --line:#283240;
+  --accent:#E2A94B; --accent-soft:#3A2D17; --accent-ink:#1A1204;
+  --math:#6C9EF0; --prog:#4CC793; --english:#EE9A52; --pbl:#A889F0; --reward:#F06FA5; --break:#8994A4; --life:#93A0B3; --busy:#9AA4B2;
+  --good:#4CC793; color-scheme:dark;
+}}
+:root[data-theme="dark"]{
+  --bg:#0E131A; --surface:#151C26; --surface-2:#1D2632; --ink:#E5EAF1; --muted:#93A0B3; --line:#283240;
+  --accent:#E2A94B; --accent-soft:#3A2D17; --accent-ink:#1A1204;
+  --math:#6C9EF0; --prog:#4CC793; --english:#EE9A52; --pbl:#A889F0; --reward:#F06FA5; --break:#8994A4; --life:#93A0B3; --busy:#9AA4B2;
+  --good:#4CC793; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:14px;line-height:1.5;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:18px 40px}
+h1,h2,h3{font-family:var(--f-display);text-wrap:balance;margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.wrap{max-width:1360px;margin:0 auto;display:grid;gap:18px}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.label{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:600}
+
+/* header */
+header{display:flex;flex-wrap:wrap;gap:14px 28px;align-items:end;justify-content:space-between}
+.brand h1{font-size:clamp(28px,4vw,42px);font-weight:800;letter-spacing:-.02em;line-height:1}
+.brand h1 span{color:var(--accent)}
+.brand p{margin:6px 0 0;color:var(--muted);max-width:52ch}
+.countdowns{display:flex;flex-wrap:wrap;gap:10px}
+.cd{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:8px 12px;min-width:150px}
+.cd b{display:block;font-family:var(--f-mono);font-size:18px;font-variant-numeric:tabular-nums}
+.cd small{color:var(--muted)}
+
+.main{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:18px;align-items:start}
+@media (max-width:980px){.main{grid-template-columns:minmax(0,1fr)}.side{order:-1}}
+
+/* calendar */
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;min-width:0}
+.calbar{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.calbar .nav{display:flex;gap:6px}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:8px;padding:6px 10px;font-weight:500}
+.btn:hover{background:var(--surface-2)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn.primary:hover{filter:brightness(1.05);background:var(--accent)}
+.days{display:flex;gap:4px;overflow-x:auto;flex:1;min-width:0;scrollbar-width:thin}
+.daytab{border:1px solid transparent;background:none;border-radius:8px;padding:4px 9px;white-space:nowrap;color:var(--muted);font-size:13px}
+.daytab b{color:var(--ink);font-weight:600}
+.daytab.on{background:var(--accent-soft);border-color:var(--accent);color:var(--ink)}
+.daytab .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-left:5px;vertical-align:middle}
+.gridscroll{overflow:auto;max-height:78vh}
+.grid{display:grid;position:relative;min-width:0}
+.colhead{position:sticky;top:0;z-index:3;background:var(--surface);border-bottom:1px solid var(--line);padding:8px 10px;font-family:var(--f-display);font-weight:700;font-size:15px}
+.colhead small{display:block;font-family:var(--f-body);font-weight:400;color:var(--muted);font-size:12px}
+.gutter{position:relative}
+.hourlabel{position:absolute;right:8px;transform:translateY(-50%);font-family:var(--f-mono);font-size:11px;color:var(--muted)}
+.daycol{position:relative;border-left:1px solid var(--line);
+  background-image:repeating-linear-gradient(to bottom,var(--line) 0 1px,transparent 1px var(--hour));}
+.halfline{position:absolute;left:0;right:0;border-top:1px dashed var(--line);opacity:.6;pointer-events:none}
+.ev{position:absolute;left:4px;right:4px;border-radius:7px;padding:4px 7px;overflow:hidden;text-align:left;border:1px solid transparent;
+  background:color-mix(in srgb,var(--c) 15%,var(--surface));color:var(--ink);font-size:12.5px;line-height:1.3;display:flex;flex-direction:column;gap:1px}
+.ev:hover{border-color:var(--c)}
+.ev .t{font-weight:600;display:flex;gap:6px;align-items:baseline}
+.ev .t span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ev.tiny .t span{display:block;white-space:nowrap;text-overflow:ellipsis;-webkit-line-clamp:unset}
+.ev .why{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ev .t i{font-style:normal;width:8px;height:8px;border-radius:2px;background:var(--c);flex:none;transform:translateY(-1px)}
+.ev .tm{font-family:var(--f-mono);font-size:10.5px;color:var(--muted)}
+.ev .why{color:var(--muted);font-size:11.5px}
+.ev.tiny{padding:0 7px;flex-direction:row;align-items:center;gap:8px;min-width:0}
+.ev.tiny .t{min-width:0;flex:1}
+.ev.tiny .tm,.ev.tiny .why{display:none}
+.ev.done{opacity:.55}
+.ev.done .t span{text-decoration:line-through}
+.ev.done .t::after{content:"✓";color:var(--good);margin-left:auto;font-weight:700}
+.ev.k-reward{background:color-mix(in srgb,var(--reward) 20%,var(--surface))}
+.ev.k-busy{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--busy) 16%,var(--surface)) 0 6px,var(--surface) 6px 12px)}
+.ev.now{border-color:var(--accent);box-shadow:0 0 0 2px var(--accent-soft)}
+.nowline{position:absolute;left:0;right:0;height:2px;background:var(--accent);z-index:2;pointer-events:none}
+.nowline::before{content:"";position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:var(--accent)}
+.legend{display:flex;flex-wrap:wrap;gap:10px 14px;padding:10px 12px;border-top:1px solid var(--line);color:var(--muted);font-size:12px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+
+/* side */
+.side{display:grid;gap:14px;min-width:0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
+.nowcard{background:var(--ink);color:var(--bg);border:none}
+.nowcard .label{color:color-mix(in srgb,var(--bg) 65%,var(--ink))}
+.nowcard h2{font-size:22px;margin:4px 0 2px;line-height:1.15}
+.nowcard .when{font-family:var(--f-mono);font-size:12px;opacity:.75}
+.nowcard .easy{margin:10px 0 0;font-size:13.5px}
+.nowcard .fuel{margin-top:10px;padding-top:10px;border-top:1px solid color-mix(in srgb,var(--bg) 25%,var(--ink));font-size:13px}
+.nowcard .fuel b{color:var(--accent)}
+.bar{height:6px;background:color-mix(in srgb,var(--bg) 20%,var(--ink));border-radius:99px;overflow:hidden;margin-top:8px}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:99px}
+.nowcard .row{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.nowcard .btn{background:transparent;border-color:color-mix(in srgb,var(--bg) 35%,var(--ink));color:var(--bg)}
+.nowcard .btn.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+
+.chat{display:flex;flex-direction:column;gap:10px}
+.chathead{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chathead h3{font-size:17px}
+.mode{font-size:11px;border:1px solid var(--line);border-radius:99px;padding:2px 8px;color:var(--muted)}
+.mode.live{border-color:var(--good);color:var(--good)}
+.msgs{display:flex;flex-direction:column;gap:8px;max-height:340px;overflow-y:auto;padding-right:2px}
+.msg{padding:8px 11px;border-radius:12px;max-width:92%;white-space:pre-wrap;overflow-wrap:anywhere}
+.msg.me{align-self:flex-end;background:var(--accent-soft);border:1px solid color-mix(in srgb,var(--accent) 40%,transparent)}
+.msg.bot{align-self:flex-start;background:var(--surface-2)}
+.msg.bot.thinking{color:var(--muted);font-style:italic}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:99px;padding:4px 10px;font-size:12.5px}
+.chip:hover{border-color:var(--accent)}
+.composer{display:flex;gap:6px}
+.composer textarea{flex:1;min-width:0;resize:none;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:10px;padding:8px 10px;font:inherit;height:42px}
+.composer .btn{flex:none}
+
+.dreams{display:grid;gap:10px}
+.dream{display:grid;grid-template-columns:28px 1fr;gap:10px;align-items:start}
+.dream .ico{width:28px;height:28px;border-radius:8px;background:var(--accent-soft);display:grid;place-items:center;font-family:var(--f-display);font-weight:800;color:var(--accent);font-size:13px}
+.dream b{display:block}
+.dream small{color:var(--muted)}
+.bank{display:flex;justify-content:space-between;align-items:baseline;background:var(--accent-soft);border-radius:10px;padding:8px 12px;margin-top:4px}
+.bank b{font-family:var(--f-mono);font-size:20px}
+
+.tasks{display:grid;gap:10px}
+.task{display:grid;gap:4px}
+.task .top{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.task .top b{font-weight:600}
+.task .top small{color:var(--muted);font-family:var(--f-mono);font-size:11px;white-space:nowrap}
+.tbar{height:5px;border-radius:99px;background:var(--surface-2);overflow:hidden}
+.tbar i{display:block;height:100%;background:var(--c)}
+.side h3{font-size:17px;margin-bottom:10px}
+
+/* drawer */
+.scrim{position:fixed;inset:0;background:rgba(10,14,20,.45);z-index:20}
+.drawer{position:fixed;top:0;right:0;bottom:0;width:min(440px,100%);background:var(--surface);z-index:21;overflow-y:auto;
+  padding:calc(20px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(20px + env(safe-area-inset-bottom,0px)) 20px;
+  border-left:1px solid var(--line);display:flex;flex-direction:column;gap:14px}
+.drawer h2{font-size:24px;line-height:1.15}
+.drawer .kind{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.drawer .kind i{width:10px;height:10px;border-radius:3px;background:var(--c)}
+.drawer ol{margin:0;padding-left:20px;display:grid;gap:6px}
+.drawer .box{background:var(--surface-2);border-radius:10px;padding:10px 12px}
+.drawer .row{display:flex;gap:8px;flex-wrap:wrap}
+.confirm{font-size:13px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);
+  padding:10px 16px;border-radius:10px;z-index:30;max-width:min(520px,calc(100% - 32px));box-shadow:0 8px 30px rgba(0,0,0,.25)}
+.foot{color:var(--muted);font-size:12px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center}
+@media (prefers-reduced-motion:no-preference){.ev{transition:border-color .15s}.toast{animation:pop .25s ease-out}@keyframes pop{from{opacity:0;transform:translate(-50%,8px)}}}
+</style>
+</head><body>
+
+<div class="wrap">
+  <header>
+    <div class="brand">
+      <h1>Grind <span>&amp;</span> Groove</h1>
+      <p>Homework in short sets, rewards in between. Every block you finish gets you closer to the drum kit.</p>
+    </div>
+    <div class="countdowns" id="countdowns"></div>
+  </header>
+
+  <div class="main">
+    <section class="cal" aria-label="Calendar">
+      <div class="calbar">
+        <div class="nav">
+          <button class="btn" id="prev" aria-label="Previous day">‹</button>
+          <button class="btn" id="today">Today</button>
+          <button class="btn" id="next" aria-label="Next day">›</button>
+        </div>
+        <div class="days" id="days"></div>
+      </div>
+      <div class="gridscroll" id="gridscroll"><div class="grid" id="grid"></div></div>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <aside class="side">
+      <div class="card nowcard" id="nowcard"></div>
+
+      <div class="card chat">
+        <div class="chathead">
+          <h3>Talk to your planner</h3>
+          <span class="mode" id="mode">Offline parser</span>
+        </div>
+        <div class="msgs" id="msgs" aria-live="polite"></div>
+        <div class="chips" id="chips"></div>
+        <form class="composer" id="composer">
+          <textarea id="input" rows="1" placeholder="e.g. english essay due friday, 2 hours"></textarea>
+          <button type="button" class="btn" id="mic" hidden aria-label="Dictate">🎙</button>
+          <button type="submit" class="btn primary">Send</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <h3>What you're working towards</h3>
+        <div class="dreams" id="dreams"></div>
+        <div class="bank"><span>Guilt-free fun banked</span><b id="bank">0 min</b></div>
+      </div>
+
+      <div class="card">
+        <h3>Deadlines</h3>
+        <div class="tasks" id="tasks"></div>
+      </div>
+
+      <div class="foot">
+        <span id="savestate">Saved in this browser</span>
+        <span id="resetwrap"><button class="btn" id="reset">Reset to starter plan</button></span>
+      </div>
+    </aside>
+  </div>
+</div>
+
+<div id="drawerroot"></div>
+<div id="toastroot"></div>
+
+<script>
+(() => {
+"use strict";
+/* ---------- time helpers (all local time, "YYYY-MM-DDTHH:MM") ---------- */
+const pad = n => String(n).padStart(2, "0");
+const dkey = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+const stamp = d => `${dkey(d)}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+const parse = s => { const [a,b="00:00"] = s.split("T"); const [y,m,d] = a.split("-").map(Number); const [h,mi] = b.split(":").map(Number); return new Date(y,m-1,d,h,mi); };
+const dayStart = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const addDays = (d,n) => new Date(d.getFullYear(), d.getMonth(), d.getDate()+n);
+const mins = (a,b) => Math.round((parse(b)-parse(a))/60000);
+const hm = s => s.slice(11,16);
+const WD = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MO = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const prettyDay = d => `${WD[d.getDay()]} ${d.getDate()} ${MO[d.getMonth()]}`;
+const STAMP_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+const uid = () => Math.random().toString(36).slice(2, 9);
+
+/* ---------- the stuff that makes it worth it ---------- */
+const DREAMS = [
+  {id:"free",    ico:"0",  name:"Zero responsibilities", line:"Every finished block is one less thing living in your head."},
+  {id:"cash",    ico:"$",  name:"Cash for the winter", line:"Passing this stuff cleanly keeps the winter free for earning, not catching up."},
+  {id:"buddies", ico:"✦",  name:"Talking to buddies", line:"Evenings are blocked for them. Earn it in the afternoon, enjoy it at night."},
+  {id:"stardew", ico:"✿",  name:"Stardew Valley", line:"One in-game day is about 14 real minutes. Your breaks are measured in farm days."},
+  {id:"drums",   ico:"♩",  name:"Alesis kit + making music", line:"The ultimate dream. Every grind block is a practice session you're buying back."},
+];
+const DREAM = Object.fromEntries(DREAMS.map(d => [d.id, d]));
+
+const KINDS = {
+  math:{name:"Math", c:"--math"}, prog:{name:"Programming", c:"--prog"}, english:{name:"English", c:"--english"},
+  pbl:{name:"PBL project", c:"--pbl"}, reward:{name:"Reward", c:"--reward"}, break:{name:"Break", c:"--break"},
+  life:{name:"Life", c:"--life"}, busy:{name:"Busy", c:"--busy"},
+};
+const WORK = new Set(["math","prog","english","pbl"]);
+
+const WHY = {
+  math:[
+    "Chapter 4 runs on rules you already learned in 3.1–3.4. You're applying them now, not learning from scratch.",
+    "Odd answers are in the back of Stewart. Try one, check it, fix it. You can't get lost for long.",
+    "You don't need every exercise. 4–6 per section is enough to recognise the pattern on Monday.",
+    "Most of these follow one recipe: write what you know, differentiate, plug in.",
+  ],
+  prog:[
+    "Write the brute force first. A slow solution that works is still something you can present.",
+    "Treat olympiad problems like puzzles. Read it twice, try the smallest case by hand, and the idea usually shows up.",
+    "Presenting is just explaining what you did. If you solved it, you can explain it.",
+  ],
+  english:[
+    "English is writing the way you talk, then cleaning it up.",
+    "Put on a 25-minute timer and write badly on purpose. Fixing a draft is easier than starting one.",
+  ],
+  pbl:[
+    "The interviews are already done, and that was the hard part. Now you're just reading and spotting patterns.",
+    "A conclusion is anything 2 or more people said. Highlight the repeats, and that's your slide.",
+  ],
+};
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const FUEL_FOR = {math:"free", prog:"drums", english:"cash", pbl:"free"};
+
+/* ---------- starter plan ---------- */
+function starter(){
+  const ev = (date, a, b, kind, title, o={}) => ({id:uid(), start:`${date}T${a}`, end:`${date}T${b}`, kind, title, done:false, auto:false, ...o});
+  const S = "2026-11-21", U = "2026-11-22", M = "2026-11-23";
+  const prog = n => ({
+    taskId:"t-olymp", fuel:"drums",
+    why:"Write the brute force first. A slow solution that works is still something you can present.",
+    steps:[
+      "Read the statement twice. Rewrite the input and output in your own words.",
+      "Work through the sample by hand on paper.",
+      "Code the brute force and test it on the samples.",
+      "Check the limits. n ≤ 10^5 means aim for O(n log n); n ≤ 20 means brute force is probably fine.",
+      "Try edge cases: n = 1, all values equal, the max values.",
+      `Write 3 lines for Monday on problem ${n}: the idea, the complexity, the tricky case.`,
+    ]});
+  const events = [
+    // ---- Saturday ----
+    ev(S,"09:30","10:00","life","Breakfast, no phone",{fuel:"free",why:"Like loading your save file. Five minutes looking at today's plan and you know exactly what's coming.",steps:["Eat something real","Glance at today's blocks, nothing else"]}),
+    ev(S,"10:00","11:00","math","Math: 3.5 Implicit diff + 3.6 Log derivatives",{taskId:"t-math",fuel:"free",
+      why:"Implicit differentiation is just the chain rule with y treated as a function of x. You already know the chain rule from 3.4.",
+      steps:["Read the boxed rules and the first 2 worked examples of 3.5 (10 min).","3.5: do 4–5 odd exercises from the first third of the set, then one tangent-line problem.","3.6: read the logarithmic differentiation example.","3.6: do 4 odd derivatives and 1 log-differentiation problem.","Check against the answers in the back and star anything you got wrong.","Start your cheat sheet: d/dx ln x, the implicit-diff steps, the inverse trig derivatives."]}),
+    ev(S,"11:00","11:15","break","Stretch + water",{why:"Drum a groove on the desk to one song. Hands are warming up for the Alesis."}),
+    ev(S,"11:15","12:30","prog","Olympiad problem 1",prog(1)),
+    ev(S,"12:30","13:30","life","Lunch + text the buddies",{fuel:"buddies",why:"Lock in tonight's plan with them now. Then you've got a reason to finish the afternoon."}),
+    ev(S,"13:30","14:30","math","Math: 3.7 Rates of change + 3.8 Exp growth",{taskId:"t-math",fuel:"free",
+      why:"These are word problems on rules you already know. 3.8 is basically one formula: y = y₀·e^(kt).",
+      steps:["3.7: read the velocity and population examples.","3.7: do 3 exercises. Underline what's given and circle what's asked.","3.8: find k from the data, then plug in. Do 3 exercises (population, half-life, cooling).","Add y = y₀e^(kt) and the half-life trick to the cheat sheet."]}),
+    ev(S,"14:30","15:00","reward","Stardew: 2 in-game days",{fuel:"stardew",why:"About 28 minutes. Water the crops, check the mail, then close it. You'll be back tonight."}),
+    ev(S,"15:00","16:15","prog","Olympiad problem 2",prog(2)),
+    ev(S,"16:15","16:30","break","Snack + walk around",{why:"Get away from the screen. Give your eyes a break."}),
+    ev(S,"16:30","17:30","math","Math: 3.9 Related rates (boss fight)",{taskId:"t-math",fuel:"free",
+      why:"Hardest section of the weekend, but it's one recipe every time. Learn the recipe once and the rest is repetition.",
+      steps:["Recipe: draw it, name the variables, write the equation that links them, differentiate with respect to t, and only then plug numbers in.","Do 5 classics: a ladder sliding, a growing sphere or balloon, a cone tank filling, a shadow, two cars moving apart.","Write the recipe at the top of the cheat sheet in big letters."]}),
+    ev(S,"17:30","18:00","math","Math: 3.10 Linear approx + 3.11 Hyperbolic (speedrun)",{taskId:"t-math",fuel:"free",
+      why:"30 minutes and you've finished Chapter 3. Both sections are short.",
+      steps:["L(x) = f(a) + f′(a)(x − a). Do 3 exercises.","Copy the definitions and derivatives of sinh and cosh to the cheat sheet. Do 2 quick ones."]}),
+    ev(S,"18:00","19:00","life","Dinner",{}),
+    ev(S,"19:00","19:30","math","Chapter 3 cheat sheet",{taskId:"t-math",fuel:"free",why:"One handwritten page. Writing it is the studying, and on Monday morning it's all you need to reread.",steps:["Every derivative rule on one page","The related-rates recipe","L(x), y₀e^(kt), and the ones you starred"]}),
+    ev(S,"19:30","22:30","reward","Buddies + Stardew, guilt-free",{fuel:"buddies",why:"You did 6.5 hours of real work today. The whole evening is yours, and you don't have to feel bad about it."}),
+    // ---- Sunday ----
+    ev(U,"09:30","10:00","life","Breakfast, no phone",{fuel:"free",why:"Same as yesterday: eat and check the plan. Chapter 3 is done, so today is the last stretch.",steps:["Eat","Look at today's blocks"]}),
+    ev(U,"10:00","11:00","math","Math: 4.1 Max/min + 4.2 Mean Value Theorem",{taskId:"t-math",fuel:"free",
+      why:"4.1 is a checklist: find the critical points, add the endpoints, compare the values. Follow the steps and you get the answer.",
+      steps:["Closed interval method: f′ = 0 or undefined, plus endpoints, then compare f values. Do 4.","MVT: write what it says in one sentence on the cheat sheet. Do 2 'find c' exercises."]}),
+    ev(U,"11:00","11:15","break","Stretch + water",{why:"Groove on the desk. Two problems left before Monday."}),
+    ev(U,"11:15","12:30","prog","Olympiad problem 3",prog(3)),
+    ev(U,"12:30","13:30","life","Lunch + check in with buddies",{fuel:"buddies"}),
+    ev(U,"13:30","14:30","math","Math: 4.3 Shape of graphs + 4.4 L'Hospital",{taskId:"t-math",fuel:"free",
+      why:"L'Hospital's rule is the satisfying one. When you get 0/0, differentiate the top and bottom and it usually works out.",
+      steps:["4.3: increasing/decreasing test, concavity, inflection points. Do 3.","4.4: check that it's really 0/0 or ∞/∞ first! Do 5, including one indeterminate product or power.","Cheat sheet: first and second derivative tests, and the L'Hospital conditions."]}),
+    ev(U,"14:30","15:00","reward","Music break: make a 4-bar beat",{fuel:"drums",why:"Any free drum app or DAW works. Practice grooves now so you're ready when the Alesis arrives."}),
+    ev(U,"15:00","16:15","prog","Olympiad problem 4",prog(4)),
+    ev(U,"16:15","16:30","break","Snack + walk",{why:"That's all 4 problems. Now just the last bit of math."}),
+    ev(U,"16:30","17:30","math","Math: 4.5 Curve sketching + 4.7 Optimization",{taskId:"t-math",fuel:"free",
+      why:"Optimization uses the related-rates recipe again: draw it, write the equation, set the derivative to 0. You already learned this yesterday.",
+      steps:["4.5: follow the book's sketching checklist and fully sketch 2 graphs.","4.7: do 3 classics (open box, fence or field, closest point on a curve)."]}),
+    ev(U,"17:30","18:00","math","Math: 4.8 Newton + 4.9 Antiderivatives (+ skim 4.6)",{taskId:"t-math",fuel:"free",
+      why:"Last sections of Chapter 4. Antiderivatives are just your derivative table run backwards.",
+      steps:["4.6: read it only. It's about graphing with technology.","4.8: xₙ₊₁ = xₙ − f(xₙ)/f′(xₙ). Do 1 by hand.","4.9: do 5 antiderivatives straight from the table."]}),
+    ev(U,"18:00","19:00","life","Dinner",{}),
+    ev(U,"19:00","19:45","prog","Presentation prep: 4 olympiad problems",{taskId:"t-olymp",fuel:"drums",
+      why:"You already wrote 3 lines per problem. This is just putting them in order and saying them out loud.",
+      steps:["One note card or slide per problem: the idea in one sentence, the complexity, one edge case.","Rehearse out loud once, about 2 minutes per problem.","Make sure each program runs on the sample input."]}),
+    ev(U,"19:45","20:15","math","Math review: redo the starred ones",{taskId:"t-math",fuel:"free",why:"Only redo the ones you got wrong. Getting them right now is what makes Monday feel easy.",steps:["Redo every starred exercise","Finish the Chapter 4 side of the cheat sheet"]}),
+    ev(U,"20:15","22:30","reward","Buddies, music, Stardew",{fuel:"drums",why:"Monday's prep is done and the whole evening is yours. Go play."}),
+    ev(U,"22:30","23:00","life","Wind down, sleep",{why:"Sleeping well before the presentation helps more than any extra exercise would."}),
+    // ---- Monday ----
+    ev(M,"07:00","07:30","math","Morning: cheat sheet + run the code",{taskId:"t-math",fuel:"free",why:"Just a warm-up. Everything is already done.",steps:["Read the cheat sheet (10 min)","Run each of the 4 solutions on the sample once","Pack: laptop/USB, Stewart, cheat sheet"]}),
+    ev(M,"08:00","15:00","busy","School: present olympiad + calculus",{why:"You've prepared for this. Go show what you did."}),
+  ];
+  const sum = id => events.filter(e => e.taskId===id).reduce((a,e)=>a+mins(e.start,e.end),0)/60;
+  const tasks = [
+    {id:"t-math", title:"Calculus: Stewart 3.5 → end of Ch. 4", kind:"math", due:"2026-11-23", hours:sum("t-math"), fixed:true},
+    {id:"t-olymp", title:"Present 4 olympiad problems", kind:"prog", due:"2026-11-23", hours:sum("t-olymp"), fixed:true},
+    {id:"t-pblc", title:"PBL: go through interviews, draw conclusions", kind:"pbl", due:"2026-11-27", hours:3,
+      steps:["Re-read or re-listen to 2 interviews and jot down the quotes that stand out.","Highlight anything 2 or more people said. That's a pattern.","Write 3–5 conclusions, one sentence each, with a quote under each."]},
+    {id:"t-eng", title:"English homework", kind:"english", due:"2026-11-30", hours:3,
+      steps:["Open the assignment and list what it actually asks for.","Write for 25 minutes on a timer without editing.","Take 5 minutes off, then spend 25 minutes cleaning it up."]},
+    {id:"t-prog", title:"Programming homework", kind:"prog", due:"2026-11-30", hours:4,
+      steps:["Pick the next exercise.","Brute force it, test it, then improve it.","Commit or save it with a one-line note on how it works."]},
+    {id:"t-pblp", title:"PBL: start the presentation", kind:"pbl", due:"2026-11-30", hours:3,
+      steps:["Outline: the problem, what you asked, what you found, what's next.","One slide per conclusion, each with a real quote.","Make a rough version first. Polish comes later."]},
+  ];
+  return {v:1, events, tasks, extraWindows:[], chat:[], updatedAt:Date.now()};
+}
+
+/* ---------- persistence ---------- */
+const LS_KEY = "grind-groove-v1";
+let state;
+try { state = JSON.parse(localStorage.getItem(LS_KEY) || "null"); } catch { state = null; }
+let fresh = false;
+if (!state || state.v !== 1) { state = starter(); state.updatedAt = 0; fresh = true; }
+let dbDoc = null, saveTimer = null;
+function save(bump = true){
+  if (bump) state.updatedAt = Date.now();
+  try { localStorage.setItem(LS_KEY, JSON.stringify(state)); } catch {}
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(async () => {
+    if (!dbDoc) return;
+    try { await dbDoc.set({json: JSON.stringify(state), updatedAt: state.updatedAt}); $("savestate").textContent = "Synced to your account"; }
+    catch { $("savestate").textContent = "Saved in this browser (sync failed)"; }
+  }, 900);
+}
+
+/* ---------- auto scheduler ---------- */
+function windowsFor(date){
+  const d = parse(date+"T00:00").getDay();
+  const base = (d===0 || d===6) ? [["10:00","12:30"],["13:30","18:00"]] : [["16:00","20:00"]];
+  return base.concat(state.extraWindows.filter(w => w.date===date).map(w => [w.start, w.end]));
+}
+function overlaps(a1,a2,b1,b2){ return a1 < b2 && b1 < a2; }
+function freeAt(s,e){ return !state.events.some(x => overlaps(s,e,x.start,x.end)); }
+
+function autoSchedule(){
+  const now = stamp(new Date());
+  state.events = state.events.filter(e => !(e.auto && !e.done && e.start >= now));
+  const report = [];
+  const open = state.tasks.filter(t => !t.fixed).sort((a,b) => a.due.localeCompare(b.due));
+  const need = {};
+  for (const t of open){
+    const have = state.events.filter(e => e.taskId===t.id && WORK.has(e.kind)).reduce((a,e)=>a+mins(e.start,e.end),0);
+    need[t.id] = Math.max(0, Math.round(t.hours*60) - have);
+  }
+  const last = open.reduce((m,t) => t.due > m ? t.due : m, dkey(new Date()));
+  for (let d = dayStart(new Date()); dkey(d) < last; d = addDays(d,1)){
+    const date = dkey(d), weekend = d.getDay()===0 || d.getDay()===6;
+    const cap = weekend ? 300 : 150;
+    let used = state.events.filter(e => e.start.startsWith(date) && WORK.has(e.kind)).reduce((a,e)=>a+mins(e.start,e.end),0);
+    let blocks = 0;
+    for (const t of open){
+      if (date >= t.due || need[t.id] <= 0) continue;
+      let perTask = 0;
+      for (const [ws,we] of windowsFor(date)){
+        let cur = `${date}T${ws}`; const wEnd = `${date}T${we}`;
+        while (cur < wEnd && need[t.id] > 0 && perTask < 120 && used < cap){
+          const len = Math.min(60, need[t.id], 120-perTask, cap-used);
+          if (len < 30 && need[t.id] >= 30) break;
+          const end = stamp(new Date(parse(cur).getTime()+len*60000));
+          if (cur < now || end > wEnd || !freeAt(cur,end)){ cur = stamp(new Date(parse(cur).getTime()+15*60000)); continue; }
+          state.events.push({id:uid(), start:cur, end, kind:t.kind, title:t.title, taskId:t.id, auto:true, done:false,
+            fuel:FUEL_FOR[t.kind]||"free", why:pick(WHY[t.kind]||WHY.math), steps:t.steps||[]});
+          need[t.id] -= len; perTask += len; used += len; blocks++;
+          let bEnd = stamp(new Date(parse(end).getTime()+15*60000));
+          const isReward = blocks % 2 === 0;
+          if (isReward) bEnd = stamp(new Date(parse(end).getTime()+30*60000));
+          if (bEnd <= wEnd && freeAt(end,bEnd)){
+            state.events.push(isReward
+              ? {id:uid(), start:end, end:bEnd, kind:"reward", title:"Stardew: 2 in-game days", auto:true, done:false, fuel:"stardew", why:"You earned it with two blocks done. Water, mail, out."}
+              : {id:uid(), start:end, end:bEnd, kind:"break", title:"Break", auto:true, done:false, why:"Stand up and drink some water."});
+          }
+          cur = bEnd;
+        }
+      }
+    }
+  }
+  for (const t of open) if (need[t.id] > 0) report.push(`${t.title}: ${(need[t.id]/60).toFixed(1)} h didn't fit before ${prettyDay(parse(t.due+"T00:00"))}`);
+  state.events.sort((a,b) => a.start.localeCompare(b.start));
+  return report;
+}
+
+/* ---------- actions (shared by Claude and the offline parser) ---------- */
+function findEvent(q){
+  if (!q) return null;
+  if (state.events.some(e => e.id===q)) return state.events.find(e => e.id===q);
+  const words = q.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+  const now = stamp(new Date());
+  const scored = state.events.map(e => {
+    const hay = (e.title+" "+KINDS[e.kind].name).toLowerCase();
+    const s = words.reduce((a,w)=>a+(hay.includes(w)?1:0),0);
+    return {e, s, dist: Math.abs(parse(e.start)-parse(now))};
+  }).filter(x => x.s>0).sort((a,b) => b.s-a.s || a.dist-b.dist);
+  return scored[0]?.e || null;
+}
+function currentEvent(){ const n = stamp(new Date()); return state.events.find(e => e.start <= n && n < e.end) || null; }
+function nextEvent(kindFilter){ const n = stamp(new Date()); return state.events.find(e => e.start > n && (!kindFilter || kindFilter(e))) || null; }
+
+function apply(actions){
+  const notes = []; let resched = false;
+  for (const a of actions || []){
+    try {
+      if (a.type === "add_task" && a.title && DATE_RE.test(a.due)){
+        const hours = Math.max(0.5, Math.min(40, Number(a.hours) || 2));
+        const kind = KINDS[a.kind] && WORK.has(a.kind) ? a.kind : guessKind(a.title) || "english";
+        state.tasks.push({id:"t-"+uid(), title:String(a.title).slice(0,80), kind, due:a.due, hours, steps:Array.isArray(a.steps)?a.steps.slice(0,6).map(String):[]});
+        resched = true;
+      } else if (a.type === "update_task"){
+        const t = state.tasks.find(x => x.id===a.id); if (!t) continue;
+        if (a.hours) t.hours = Math.max(0.5, Math.min(40, Number(a.hours)));
+        if (DATE_RE.test(a.due||"")) t.due = a.due;
+        if (a.title) t.title = String(a.title).slice(0,80);
+        resched = true;
+      } else if (a.type === "delete_task"){
+        state.tasks = state.tasks.filter(x => x.id !== a.id);
+        state.events = state.events.filter(e => !(e.taskId===a.id && e.auto && !e.done));
+        resched = true;
+      } else if ((a.type === "add_event" || a.type === "busy") && STAMP_RE.test(a.start) && STAMP_RE.test(a.end) && a.end > a.start){
+        const kind = a.type==="busy" ? "busy" : (KINDS[a.kind] ? a.kind : "life");
+        // a busy block pushes auto blocks out of the way
+        state.events = state.events.filter(e => !(e.auto && !e.done && overlaps(e.start,e.end,a.start,a.end)));
+        state.events.push({id:uid(), start:a.start, end:a.end, kind, title:String(a.title||"Busy").slice(0,80), auto:false, done:false,
+          why:a.why?String(a.why):"", steps:Array.isArray(a.steps)?a.steps.slice(0,8).map(String):[], fuel:a.fuel&&DREAM[a.fuel]?a.fuel:undefined});
+        const clash = state.events.filter(x => !x.auto && !x.done && x.kind!=="busy" && x.kind!=="life" && overlaps(x.start,x.end,a.start,a.end) && x.title !== String(a.title||"Busy").slice(0,80));
+        if (clash.length) notes.push("These planned blocks overlap it now: " + clash.map(x => `${x.title} (${hm(x.start)})`).join(", ") + ". Move them, for example \"move " + clash[0].title.split(/[:·]/)[0].trim().toLowerCase() + " to 19:00\".");
+        resched = true;
+      } else if (a.type === "free_window" && DATE_RE.test(a.date) && /^\d{2}:\d{2}$/.test(a.start) && /^\d{2}:\d{2}$/.test(a.end)){
+        state.extraWindows.push({date:a.date, start:a.start, end:a.end}); resched = true;
+      } else if (a.type === "done"){
+        const e = findEvent(a.id); if (e && !e.done){ e.done = true; notes.push(celebrate(e)); }
+      } else if (a.type === "undo_done"){
+        const e = findEvent(a.id); if (e) e.done = false;
+      } else if (a.type === "move" && STAMP_RE.test(a.start)){
+        const e = findEvent(a.id); if (!e) continue;
+        const len = mins(e.start, e.end);
+        e.start = a.start; e.end = STAMP_RE.test(a.end||"") && a.end > a.start ? a.end : stamp(new Date(parse(a.start).getTime()+len*60000));
+        e.auto = false;
+        state.events = state.events.filter(x => x===e || !(x.auto && !x.done && overlaps(x.start,x.end,e.start,e.end)));
+        resched = true;
+      } else if (a.type === "delete"){
+        const e = findEvent(a.id); if (e){ state.events = state.events.filter(x => x !== e); resched = true; }
+      } else if (a.type === "reschedule"){ resched = true; }
+    } catch {}
+  }
+  if (resched){ const r = autoSchedule(); if (r.length) notes.push("Heads up: "+r.join("; ")+". Say something like \"I'm free saturday 18-20\" to make room."); }
+  state.events.sort((a,b) => a.start.localeCompare(b.start));
+  save(); render();
+  return notes;
+}
+function celebrate(e){
+  if (!WORK.has(e.kind)) return `Marked "${e.title}" done.`;
+  const earned = Math.round(mins(e.start,e.end)/3);
+  const f = DREAM[e.fuel||FUEL_FOR[e.kind]||"free"];
+  return `Nice, "${e.title}" is done. +${earned} min of guilt-free fun banked. ${f.name}: ${f.line}`;
+}
+
+/* ---------- offline parser ---------- */
+function guessKind(t){
+  t = t.toLowerCase();
+  if (/math|calc|stewart|analysis|derivat|integral/.test(t)) return "math";
+  if (/program|code|coding|olymp|algo|python|c\+\+|java/.test(t)) return "prog";
+  if (/english|essay|reading|vocab|grammar/.test(t)) return "english";
+  if (/pbl|interview|presentation|project|slides/.test(t)) return "pbl";
+  if (/stardew|game|buddies|friends|drum|music|beat/.test(t)) return "reward";
+  return null;
+}
+const MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+function parseDate(text){
+  const t = text.toLowerCase(), today = dayStart(new Date());
+  let m;
+  if ((m = t.match(/(\d{4})-(\d{2})-(\d{2})/))) return {date:new Date(+m[1],+m[2]-1,+m[3]), raw:m[0]};
+  if ((m = t.match(/\b(\d{1,2})(?:st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*/))) return {date:new Date(today.getFullYear(), MONTHS.indexOf(m[2]), +m[1]), raw:m[0]};
+  if ((m = t.match(/\b(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*\s+(\d{1,2})(?:st|nd|rd|th)?\b/))) return {date:new Date(today.getFullYear(), MONTHS.indexOf(m[1]), +m[2]), raw:m[0]};
+  if ((m = t.match(/\b(\d{1,2})[./](\d{1,2})\b/))){ let d=+m[1], mo=+m[2]; if (mo>12){[d,mo]=[mo,d];} return {date:new Date(today.getFullYear(), mo-1, d), raw:m[0]}; }
+  if ((m = t.match(/end of (the )?(month|november|nov)/))) return {date:new Date(today.getFullYear(), today.getMonth()+1, 0), raw:m[0]};
+  if ((m = t.match(/\b(today|tonight)\b/))) return {date:today, raw:m[0]};
+  if ((m = t.match(/\btomorrow\b/))) return {date:addDays(today,1), raw:m[0]};
+  if ((m = t.match(/\b(next\s+)?(sun|mon|tue|wed|thu|fri|sat)[a-z]*\b/))){
+    const target = ["sun","mon","tue","wed","thu","fri","sat"].indexOf(m[2]);
+    let diff = (target - today.getDay() + 7) % 7; if (m[1]) diff += 7;
+    return {date:addDays(today,diff), raw:m[0]};
+  }
+  return null;
+}
+function toHM(h, mi, ap){ h = +h; mi = +(mi||0); if (ap==="pm" && h<12) h+=12; if (ap==="am" && h===12) h=0; return `${pad(Math.min(h,23))}:${pad(mi)}`; }
+function parseRange(t){
+  const m = t.match(/\b(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\s*(?:-|–|to|until|till)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/);
+  if (!m) return null;
+  const ap2 = m[6], ap1 = m[3] || (ap2 && +m[1] <= +m[4] ? ap2 : undefined);
+  return {start:toHM(m[1],m[2],ap1), end:toHM(m[4],m[5],ap2), raw:m[0]};
+}
+function parseAt(t){
+  const m = t.match(/\b(?:at|to)\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?\b/) || t.match(/\b(\d{1,2}):(\d{2})\s*(am|pm)?\b/) || t.match(/\b(\d{1,2})\s*(am|pm)\b/);
+  if (!m) return null;
+  if (m.length === 3) return toHM(m[1], 0, m[2]);
+  return toHM(m[1], m[2], m[3]);
+}
+function parseHours(t){
+  let m;
+  if ((m = t.match(/(\d+(?:[.,]\d+)?)\s*(h|hrs?|hours?)\b/))) return parseFloat(m[1].replace(",","."));
+  if ((m = t.match(/(\d+)\s*(m|mins?|minutes?)\b/))) return +m[1]/60;
+  return null;
+}
+function cleanTitle(t, strip){
+  let s = t;
+  for (const r of strip) if (r) s = s.replace(r, " ");
+  s = s.replace(/\b(add|new|i need to|i have to|i've got|i got|please|schedule|homework due|due|by|on|for|until|about|around|hours?|hrs?|h)\b/gi, " ")
+       .replace(/[,.;:!]+/g," ").replace(/\s+/g," ").trim();
+  return s ? s[0].toUpperCase()+s.slice(1) : "";
+}
+function describe(e){
+  if (!e) return "";
+  const f = e.fuel ? DREAM[e.fuel] : null;
+  return `${prettyDay(parse(e.start))}, ${hm(e.start)}–${hm(e.end)}: ${e.title}` + (e.why ? `\nWhy it's easy: ${e.why}` : "") + (f ? `\nWhat it's for: ${f.name}` : "");
+}
+function pep(){
+  const c0 = currentEvent();
+  const e = (c0 && !c0.done && WORK.has(c0.kind)) ? c0 : nextEvent(x => WORK.has(x.kind) && !x.done);
+  const d = pick(DREAMS);
+  const nextFun = nextEvent(x => x.kind==="reward");
+  let s = `Here's the deal. ${d.name}: ${d.line}`;
+  if (e && WORK.has(e.kind)) s += `\n\nYou don't have to do the whole thing, just this block: ${e.title}. ${e.why||pick(WHY[e.kind])}`;
+  if (nextFun) s += `\n\nNext reward: ${nextFun.title} at ${hm(nextFun.start)}${nextFun.start.slice(0,10)!==dkey(new Date())?" ("+prettyDay(parse(nextFun.start))+")":""}.`;
+  s += "\n\nTry 10 minutes. If you still hate it after 10, take a 5-minute break. Usually you'll just keep going.";
+  return s;
+}
+const HELP = `Things you can say:
+• "english essay due friday, 2 hours" (adds a task and schedules it)
+• "busy saturday 14-16 football" (blocks time and moves work around it)
+• "free sunday 18-20" (gives me more time to schedule work)
+• "done" or "done olympiad 2" (marks a block done and banks fun time)
+• "move math 4.7 to 18:00" or "move stardew to sunday 15:00"
+• "delete stardew 14:30", "reschedule", "what now?", "I'm bored"`;
+
+function localReply(text){
+  const t = text.toLowerCase().trim();
+  if (/^(help|\?|what can you do)/.test(t)) return {reply:HELP, actions:[]};
+  if (/^(done|finished|did it|i did|completed)\b/.test(t)){
+    const rest = t.replace(/^(done|finished|did it|i did|completed)\b(with)?/,"").trim();
+    const e = (rest && findEvent(rest)) || currentEvent() ||
+      [...state.events].reverse().find(x => !x.done && WORK.has(x.kind) && x.start <= stamp(new Date()));
+    if (!e) return {reply:"I couldn't tell which block you finished. Try \"done olympiad 1\".", actions:[]};
+    return {reply:"", actions:[{type:"done", id:e.id}]};
+  }
+  if (/(motivat|bored|boring|can'?t|tired|hate|lazy|ugh|don'?t want|procrast|stuck)/.test(t)) return {reply:pep(), actions:[]};
+  if (/(what('?s| is)? (now|next|up)|^now\b|^next\b|current)/.test(t)){
+    const c = currentEvent(), n = nextEvent();
+    return {reply:(c ? "Right now: "+describe(c) : "Nothing scheduled right now.") + (n ? "\n\nNext: "+describe(n) : ""), actions:[]};
+  }
+  if (/^(reschedule|replan|re-plan|plan|fill)/.test(t)) return {reply:"Re-planned all upcoming auto blocks.", actions:[{type:"reschedule"}]};
+  const pd = parseDate(t);
+  const rest = pd ? t.replace(pd.raw," ") : t;
+  if (/^(busy|block|i('?m| am) busy|i have|got)\b/.test(t)){
+    const r = parseRange(rest);
+    if (!r) return {reply:"Give me a time range, like \"busy saturday 14-16 football\".", actions:[]};
+    const date = dkey(pd ? pd.date : new Date());
+    const title = cleanTitle(rest.replace(r.raw," ").replace(/^(busy|block|i('?m| am) busy|i have|got)\b/," "), []) || "Busy";
+    return {reply:`Blocked ${prettyDay(parse(date+"T00:00"))} ${r.start}–${r.end} (${title}) and moved auto-planned work around it.`, actions:[{type:"busy", title, start:`${date}T${r.start}`, end:`${date}T${r.end}`}]};
+  }
+  if (/^(free|i('?m| am) free|available)\b/.test(t)){
+    const r = parseRange(rest);
+    if (!r) return {reply:"Give me a time range, like \"free sunday 18-20\".", actions:[]};
+    const date = dkey(pd ? pd.date : new Date());
+    return {reply:`OK, I'll use ${prettyDay(parse(date+"T00:00"))} ${r.start}–${r.end} for work if it's needed.`, actions:[{type:"free_window", date, start:r.start, end:r.end}]};
+  }
+  if (/^(move|shift|push|put)\b/.test(t)){
+    const parts = rest.replace(/^(move|shift|push|put)\b/,"").split(/\bto\b/);
+    const e = findEvent(parts[0]);
+    const time = parseAt(" to "+(parts.slice(1).join(" to ")||""));
+    if (!e || !time) return {reply:"Try \"move olympiad 3 to 16:00\" or \"move stardew to sunday 15:00\".", actions:[]};
+    const date = pd ? dkey(pd.date) : e.start.slice(0,10);
+    return {reply:`Moved "${e.title}" to ${prettyDay(parse(date+"T00:00"))} ${time}.`, actions:[{type:"move", id:e.id, start:`${date}T${time}`}]};
+  }
+  if (/^(delete|remove|cancel|drop)\b/.test(t)){
+    const e = findEvent(rest.replace(/^(delete|remove|cancel|drop)\b/,""));
+    if (!e) return {reply:"I couldn't find that block.", actions:[]};
+    return {reply:`Removed "${e.title}" (${prettyDay(parse(e.start))} ${hm(e.start)}).`, actions:[{type:"delete", id:e.id}]};
+  }
+  // add something
+  const range = parseRange(rest);
+  if (range && pd && !/\bdue\b/.test(t)){
+    const title = cleanTitle(rest.replace(range.raw," "), []) || "Event";
+    const kind = guessKind(title) || "life";
+    const date = dkey(pd.date);
+    return {reply:`Added "${title}" on ${prettyDay(pd.date)} ${range.start}–${range.end}.`, actions:[{type:"add_event", title, kind, start:`${date}T${range.start}`, end:`${date}T${range.end}`, why: WORK.has(kind)?pick(WHY[kind]):"", fuel: WORK.has(kind)?FUEL_FOR[kind]:(kind==="reward"?"stardew":undefined)}]};
+  }
+  const hours = parseHours(rest);
+  if (pd || hours || /\b(due|homework|essay|test|exam|study)\b/.test(t)){
+    const due = pd ? pd.date : addDays(dayStart(new Date()), 7);
+    const title = cleanTitle(rest.replace(/(\d+(?:[.,]\d+)?)\s*(h|hrs?|hours?|m|mins?|minutes?)\b/," "), []) || "Homework";
+    const kind = guessKind(title) || "english";
+    const h = hours || 2;
+    return {reply:`Added "${title}" (${h} h, due ${prettyDay(due)}) and spread it over your free afternoons.${hours?"":" I guessed 2 hours. Say \"it's 4 hours\" with the name to change it."}`,
+      actions:[{type:"add_task", title, kind, due:dkey(due), hours:h}]};
+  }
+  const hit = findEvent(t);
+  if (hit) return {reply:describe(hit), actions:[]};
+  return {reply:"I didn't catch that. "+HELP, actions:[]};
+}
+
+/* ---------- Claude (when the page runs inside Claude) ---------- */
+let sample = null, dictation = null;
+const RULES = `You are the planning brain of "Grind & Groove", an hourly homework planner for a high-school student who finds homework boring but can do anything with something fun to look forward to.
+Their dreams: getting rid of responsibilities, cash in the winter, talking to buddies, playing Stardew Valley, and buying an Alesis drum kit to make music (the ultimate dream).
+You read their message and the current plan, then reply with ONLY a JSON object:
+{"reply": "short, warm, direct message (max ~90 words). Mention why the work is easy and tie it to a dream when it fits.",
+ "actions": [ ... ]}
+Action types (use exact field names; times are local "YYYY-MM-DDTHH:MM", dates "YYYY-MM-DD"):
+- {"type":"add_task","title","kind":"math|prog|english|pbl","due":"YYYY-MM-DD","hours":number,"steps":[short strings]}  -> auto-scheduled into free afternoons before due
+- {"type":"update_task","id","hours"?,"due"?,"title"?}
+- {"type":"delete_task","id"}
+- {"type":"add_event","title","kind":"math|prog|english|pbl|reward|break|life","start","end","why"?,"steps"?,"fuel":"free|cash|buddies|stardew|drums"?}
+- {"type":"busy","title","start","end"}  -> blocks time, work moves around it
+- {"type":"free_window","date","start":"HH:MM","end":"HH:MM"}  -> extra time the scheduler may use
+- {"type":"done","id"} / {"type":"undo_done","id"}
+- {"type":"move","id","start","end"?}
+- {"type":"delete","id"}
+- {"type":"reschedule"}
+Only use ids that appear in the plan. If nothing should change, return "actions": []. Weekday school is roughly 08:00-15:00; default work windows are weekdays 16:00-20:00 and weekends 10:00-18:00.`;
+function planSnapshot(){
+  const now = new Date(), from = stamp(addDays(dayStart(now),-1)), to = stamp(addDays(dayStart(now),11));
+  const ev = state.events.filter(e => e.start >= from && e.start < to)
+    .map(e => `${e.id}|${e.start}|${hm(e.end)}|${e.kind}|${e.title}${e.done?"|DONE":""}${e.taskId?"|task:"+e.taskId:""}`).join("\n");
+  const tk = state.tasks.map(t => `${t.id}|${t.title}|${t.kind}|due ${t.due}|${t.hours}h${t.fixed?"|hand-planned":""}`).join("\n");
+  return `Now: ${stamp(now)} (${WD[now.getDay()]})\nTasks:\n${tk}\nEvents (id|start|end|kind|title):\n${ev}\nExtra free windows: ${JSON.stringify(state.extraWindows)}`;
+}
+async function claudeReply(text){
+  const hist = state.chat.slice(-8).map(m => ({role: m.who==="me" ? "user" : "assistant", content: m.text}));
+  const turns = [{role:"user", content:RULES}, ...hist, {role:"user", content:`${planSnapshot()}\n\nMessage: ${text}`}];
+  const out = await sample.json(turns, {cache:false});
+  if (!out || typeof out !== "object") throw {code:"invalid_json"};
+  return {reply: String(out.reply||""), actions: Array.isArray(out.actions) ? out.actions : []};
+}
+
+/* ---------- chat ---------- */
+const $ = id => document.getElementById(id);
+function pushMsg(who, text){ state.chat.push({who, text}); state.chat = state.chat.slice(-40); }
+let busy = false;
+async function send(text){
+  text = text.trim(); if (!text || busy) return;
+  busy = true; pushMsg("me", text); renderChat(true);
+  let res;
+  if (sample){
+    try { res = await claudeReply(text); }
+    catch (e) {
+      if (e && (e.code === "not_granted" || e.code === "sampling_disabled" || e.code === "capability_disabled")){ sample = null; setMode(); }
+      res = localReply(text);
+      if (e && e.code === "rate_limited") res.reply = "(Claude is busy, so I used the offline parser.)\n" + res.reply;
+    }
+  } else res = localReply(text);
+  const notes = apply(res.actions);
+  pushMsg("bot", [res.reply, ...notes].filter(Boolean).join("\n\n") || "Done.");
+  busy = false; save(); renderChat();
+}
+function renderChat(thinking){
+  const box = $("msgs");
+  box.innerHTML = "";
+  if (!state.chat.length){
+    const m = document.createElement("div"); m.className = "msg bot";
+    m.textContent = "Hey. Your weekend is planned: 7 short math sets, 4 olympiad problems, rewards in between, and every evening free for buddies and Stardew.\n\nTell me when something changes, like \"busy saturday 14-16\", \"english essay due friday 2h\", or \"I'm bored\".";
+    box.append(m);
+  }
+  for (const c of state.chat){ const m = document.createElement("div"); m.className = "msg "+(c.who==="me"?"me":"bot"); m.textContent = c.text; box.append(m); }
+  if (thinking){ const m = document.createElement("div"); m.className = "msg bot thinking"; m.textContent = sample ? "Thinking..." : "..."; box.append(m); }
+  box.scrollTop = box.scrollHeight;
+}
+function setMode(){ const m = $("mode"); m.textContent = sample ? "Claude" : "Offline parser"; m.classList.toggle("live", !!sample); m.title = sample ? "Messages are understood by Claude" : "Understands simple commands; type 'help'"; }
+
+/* ---------- rendering ---------- */
+const H0 = 7, H1 = 24;
+let viewStart = (() => { const t = dayStart(new Date()); const sat = new Date(2026,10,21); return t < sat ? sat : t; })();
+function cols(){ return innerWidth > 1180 ? 3 : innerWidth > 720 ? 2 : 1; }
+function cvar(kind){ return `var(${KINDS[kind]?.c || "--life"})`; }
+
+function render(){
+  renderCountdowns(); renderDays(); renderGrid(); renderNow(); renderDreams(); renderTasks();
+}
+function renderCountdowns(){
+  const now = new Date();
+  const items = [
+    {t:new Date(2026,10,23,8,0), name:"Monday presentation + calculus"},
+    {t:new Date(2026,10,30,8,0), name:"End-of-November deadlines"},
+  ];
+  $("countdowns").innerHTML = "";
+  for (const it of items){
+    const ms = it.t - now; const el = document.createElement("div"); el.className = "cd";
+    let v;
+    if (ms <= 0) v = "now";
+    else { const h = Math.floor(ms/3600000); v = h >= 48 ? `${Math.floor(h/24)}d ${h%24}h` : `${h}h ${Math.floor(ms/60000)%60}m`; }
+    el.innerHTML = `<b></b><small></small>`; el.querySelector("b").textContent = v; el.querySelector("small").textContent = it.name;
+    $("countdowns").append(el);
+  }
+}
+function renderDays(){
+  const box = $("days"); box.innerHTML = "";
+  const first = addDays(dayStart(new Date()), -1), n = cols();
+  for (let i=0;i<12;i++){
+    const d = addDays(first,i), k = dkey(d);
+    const b = document.createElement("button"); b.className = "daytab";
+    const on = d >= viewStart && d < addDays(viewStart,n);
+    if (on) b.classList.add("on");
+    b.innerHTML = `${WD[d.getDay()]} <b>${d.getDate()}</b>`;
+    if (state.events.some(e => e.start.startsWith(k) && WORK.has(e.kind) && !e.done)) b.insertAdjacentHTML("beforeend",'<span class="dot" title="Work planned"></span>');
+    b.onclick = () => { viewStart = d; render(); };
+    box.append(b);
+  }
+}
+function renderGrid(){
+  const g = $("grid"), n = cols(), hours = H1-H0;
+  g.style.gridTemplateColumns = `48px repeat(${n}, minmax(0,1fr))`;
+  g.innerHTML = "";
+  const corner = document.createElement("div"); corner.className = "colhead"; corner.style.padding = "0"; g.append(corner);
+  const days = [...Array(n)].map((_,i) => addDays(viewStart,i));
+  for (const d of days){
+    const h = document.createElement("div"); h.className = "colhead";
+    const k = dkey(d);
+    const work = state.events.filter(e => e.start.startsWith(k) && WORK.has(e.kind)).reduce((a,e)=>a+mins(e.start,e.end),0);
+    const fun = state.events.filter(e => e.start.startsWith(k) && e.kind==="reward").reduce((a,e)=>a+mins(e.start,e.end),0);
+    h.textContent = (k===dkey(new Date()) ? "Today · " : "") + prettyDay(d);
+    const s = document.createElement("small"); s.textContent = work||fun ? `${(work/60).toFixed(1)} h work · ${(fun/60).toFixed(1)} h fun` : "Nothing planned yet";
+    h.append(s); g.append(h);
+  }
+  const gut = document.createElement("div"); gut.className = "gutter"; gut.style.height = `calc(var(--hour) * ${hours})`;
+  for (let h=H0+1; h<H1; h++){ const l = document.createElement("div"); l.className = "hourlabel"; l.style.top = `calc(var(--hour) * ${h-H0})`; l.textContent = `${pad(h)}:00`; gut.append(l); }
+  g.append(gut);
+  const now = new Date(), nowS = stamp(now);
+  for (const d of days){
+    const col = document.createElement("div"); col.className = "daycol"; col.style.height = `calc(var(--hour) * ${hours})`;
+    const k = dkey(d);
+    const evs = state.events.filter(e => e.start.slice(0,10)===k);
+    // lanes for overlaps
+    const laneOf = new Map(), widthOf = new Map();
+    let cluster = [], lanes = [], cEnd = "";
+    const flush = () => { for (const x of cluster) widthOf.set(x, lanes.length); cluster = []; lanes = []; };
+    for (const e of evs){
+      if (cluster.length && e.start >= cEnd) flush();
+      let i = lanes.findIndex(end => end <= e.start); if (i<0){ i = lanes.length; lanes.push(e.end);} else lanes[i] = e.end;
+      laneOf.set(e, i); cluster.push(e); if (e.end > cEnd || cluster.length===1) cEnd = cluster.length===1 ? e.end : (e.end > cEnd ? e.end : cEnd);
+    }
+    flush();
+    for (const e of evs){
+      const s = parse(e.start), en = parse(e.end);
+      const top = Math.max(0, (s.getHours()+s.getMinutes()/60) - H0);
+      const endH = en.getDate()!==s.getDate() ? H1 : (en.getHours()+en.getMinutes()/60);
+      const len = Math.max(0.25, Math.min(H1, endH) - H0 - top);
+      if (endH <= H0) continue;
+      const b = document.createElement("button");
+      b.className = `ev k-${e.kind}` + (e.done?" done":"") + (e.start<=nowS && nowS<e.end ? " now":"") + (len < 0.75 ? " tiny":"");
+      b.style.setProperty("--c", cvar(e.kind));
+      b.style.top = `calc(var(--hour) * ${top} + 1px)`; b.style.height = `calc(var(--hour) * ${len} - 2px)`;
+      const L = widthOf.get(e) || 1;
+      if (L>1){ const i = laneOf.get(e); b.style.left = `calc(${(i/L)*100}% + 3px)`; b.style.right = "auto"; b.style.width = `calc(${100/L}% - 6px)`; }
+      b.innerHTML = `<span class="t"><i></i><span></span></span><span class="tm"></span>${len>=1.25 && e.why ? '<span class="why"></span>':""}`;
+      b.querySelector(".t span").textContent = e.title;
+      b.querySelector(".tm").textContent = `${hm(e.start)}–${hm(e.end)}`;
+      if (len>=1.25 && e.why) b.querySelector(".why").textContent = e.why;
+      b.setAttribute("aria-label", `${e.title}, ${hm(e.start)} to ${hm(e.end)}${e.done?", done":""}`);
+      b.onclick = () => openDrawer(e.id);
+      col.append(b);
+    }
+    if (k === dkey(now)){
+      const h = now.getHours()+now.getMinutes()/60;
+      if (h>=H0 && h<H1){ const l = document.createElement("div"); l.className = "nowline"; l.style.top = `calc(var(--hour) * ${h-H0})`; col.append(l); }
+    }
+    g.append(col);
+  }
+  const lg = $("legend"); lg.innerHTML = "";
+  for (const [k,v] of Object.entries(KINDS)){ const s = document.createElement("span"); s.innerHTML = `<i style="--c:${cvar(k)}"></i>`; s.append(v.name); lg.append(s); }
+}
+function renderNow(){
+  const c = currentEvent(), n = nextEvent();
+  const focus = c || n;
+  const box = $("nowcard"); box.innerHTML = "";
+  const lab = document.createElement("div"); lab.className = "label"; lab.textContent = c ? "Now playing" : "Up next"; box.append(lab);
+  if (!focus){ const h = document.createElement("h2"); h.textContent = "Nothing scheduled. Enjoy."; box.append(h); return; }
+  const h = document.createElement("h2"); h.textContent = focus.title; box.append(h);
+  const w = document.createElement("div"); w.className = "when";
+  w.textContent = `${prettyDay(parse(focus.start))} · ${hm(focus.start)}–${hm(focus.end)}`; box.append(w);
+  if (c){
+    const pct = Math.min(100, Math.max(0, (new Date()-parse(c.start))/(parse(c.end)-parse(c.start))*100));
+    box.insertAdjacentHTML("beforeend", `<div class="bar"><i style="width:${pct.toFixed(1)}%"></i></div>`);
+  }
+  if (focus.why){ const p = document.createElement("p"); p.className = "easy"; p.textContent = (WORK.has(focus.kind)?"Why it's easy: ":"") + focus.why; box.append(p); }
+  const f = DREAM[focus.fuel || (WORK.has(focus.kind) ? FUEL_FOR[focus.kind] : "")];
+  const nf = nextEvent(x => x.kind==="reward");
+  if (f || nf){
+    const d = document.createElement("div"); d.className = "fuel";
+    if (f){ const b = document.createElement("b"); b.textContent = f.name; d.append("This is for ", b, ". "); }
+    if (nf && nf !== focus) d.append(`Next reward: ${nf.title} at ${hm(nf.start)}.`);
+    box.append(d);
+  }
+  const row = document.createElement("div"); row.className = "row";
+  if (c && WORK.has(c.kind) && !c.done){ const b = document.createElement("button"); b.className = "btn primary"; b.textContent = "Mark done"; b.onclick = () => { const notes = apply([{type:"done", id:c.id}]); toast(notes[0]); }; row.append(b); }
+  const o = document.createElement("button"); o.className = "btn"; o.textContent = "Open steps"; o.onclick = () => openDrawer(focus.id); row.append(o);
+  box.append(row);
+}
+function bankMinutes(){ return state.events.filter(e => e.done && WORK.has(e.kind)).reduce((a,e)=>a+Math.round(mins(e.start,e.end)/3),0); }
+function renderDreams(){
+  const box = $("dreams"); box.innerHTML = "";
+  const totalWork = state.tasks.reduce((a,t)=>a+t.hours*60,0);
+  const doneWork = state.events.filter(e => e.done && WORK.has(e.kind)).reduce((a,e)=>a+mins(e.start,e.end),0);
+  for (const d of DREAMS){
+    const el = document.createElement("div"); el.className = "dream";
+    el.innerHTML = `<div class="ico"></div><div><b></b><small></small></div>`;
+    el.querySelector(".ico").textContent = d.ico; el.querySelector("b").textContent = d.name; el.querySelector("small").textContent = d.line;
+    if (d.id === "free"){
+      const pct = totalWork ? Math.min(100, doneWork/totalWork*100) : 0;
+      el.querySelector("div:last-child").insertAdjacentHTML("beforeend", `<div class="tbar" style="margin-top:6px;--c:var(--accent)"><i style="width:${pct.toFixed(1)}%"></i></div><small class="mono">${(doneWork/60).toFixed(1)} / ${(totalWork/60).toFixed(1)} h of responsibilities gone</small>`);
+    }
+    box.append(el);
+  }
+  $("bank").textContent = `${bankMinutes()} min`;
+}
+function renderTasks(){
+  const box = $("tasks"); box.innerHTML = "";
+  for (const t of [...state.tasks].sort((a,b)=>a.due.localeCompare(b.due))){
+    const evs = state.events.filter(e => e.taskId===t.id && WORK.has(e.kind));
+    const done = evs.filter(e=>e.done).reduce((a,e)=>a+mins(e.start,e.end),0);
+    const planned = evs.reduce((a,e)=>a+mins(e.start,e.end),0);
+    const el = document.createElement("div"); el.className = "task"; el.style.setProperty("--c", cvar(t.kind));
+    el.innerHTML = `<div class="top"><b></b><small></small></div><div class="tbar"><i></i></div>`;
+    el.querySelector("b").textContent = t.title;
+    el.querySelector("small").textContent = `due ${prettyDay(parse(t.due+"T00:00"))} · ${(done/60).toFixed(1)}/${t.hours.toFixed(1)} h` + (planned < t.hours*60-1 ? " · not all planned" : "");
+    el.querySelector(".tbar i").style.width = `${Math.min(100, t.hours ? done/(t.hours*60)*100 : 0)}%`;
+    box.append(el);
+  }
+}
+
+/* ---------- drawer ---------- */
+function openDrawer(id){
+  const e = state.events.find(x => x.id===id); if (!e) return;
+  const root = $("drawerroot"); root.innerHTML = "";
+  const scrim = document.createElement("div"); scrim.className = "scrim"; scrim.onclick = close;
+  const d = document.createElement("div"); d.className = "drawer"; d.setAttribute("role","dialog"); d.setAttribute("aria-modal","true");
+  d.style.setProperty("--c", cvar(e.kind));
+  const k = document.createElement("span"); k.className = "kind"; k.innerHTML = "<i></i>"; k.append(KINDS[e.kind].name + (e.auto ? " · auto-planned" : ""));
+  const h = document.createElement("h2"); h.textContent = e.title;
+  const w = document.createElement("div"); w.className = "mono"; w.style.color = "var(--muted)"; w.textContent = `${prettyDay(parse(e.start))} · ${hm(e.start)}–${hm(e.end)} · ${mins(e.start,e.end)} min`;
+  d.append(k,h,w);
+  if (e.why){ const b = document.createElement("div"); b.className = "box"; const l = document.createElement("div"); l.className = "label"; l.textContent = WORK.has(e.kind) ? "Why it's easy" : "Why"; const p = document.createElement("div"); p.textContent = e.why; b.append(l,p); d.append(b); }
+  if (e.steps && e.steps.length){ const l = document.createElement("div"); l.className = "label"; l.textContent = "Steps"; const ol = document.createElement("ol"); for (const s of e.steps){ const li = document.createElement("li"); li.textContent = s; ol.append(li); } d.append(l, ol); }
+  const f = DREAM[e.fuel || (WORK.has(e.kind) ? FUEL_FOR[e.kind] : "")];
+  if (f){ const b = document.createElement("div"); b.className = "box"; const l = document.createElement("div"); l.className = "label"; l.textContent = "What it's for"; const p = document.createElement("div"); p.innerHTML = "<b></b> "; p.querySelector("b").textContent = f.name; p.append(f.line); b.append(l,p); d.append(b); }
+  const row = document.createElement("div"); row.className = "row";
+  const done = document.createElement("button"); done.className = "btn primary"; done.textContent = e.done ? "Mark not done" : "Mark done";
+  done.onclick = () => { const notes = apply([{type: e.done ? "undo_done" : "done", id:e.id}]); if (notes[0]) toast(notes[0]); close(); };
+  const del = document.createElement("button"); del.className = "btn"; del.textContent = "Delete";
+  const conf = document.createElement("div"); conf.className = "confirm"; conf.hidden = true;
+  del.onclick = () => {
+    conf.hidden = false; conf.innerHTML = "";
+    const y = document.createElement("button"); y.className = "btn"; y.textContent = "Yes, delete";
+    y.onclick = () => { apply([{type:"delete", id:e.id}]); close(); };
+    const n = document.createElement("button"); n.className = "btn"; n.textContent = "Keep it"; n.onclick = () => { conf.hidden = true; };
+    conf.append("Delete this block? Auto-planned work will be re-placed. ", y, " ", n);
+  };
+  const x = document.createElement("button"); x.className = "btn"; x.textContent = "Close"; x.onclick = close;
+  row.append(done, del, x); d.append(row, conf);
+  const hint = document.createElement("div"); hint.className = "confirm"; hint.textContent = `To move it, tell the planner: "move ${e.title.split(/[:·]/)[0].trim().toLowerCase()} to 17:00".`; d.append(hint);
+  root.append(scrim, d); x.focus();
+  function close(){ root.innerHTML = ""; }
+  d.addEventListener("keydown", ev => { if (ev.key === "Escape") close(); });
+}
+let toastT;
+function toast(text){ if (!text) return; const r = $("toastroot"); r.innerHTML = ""; const t = document.createElement("div"); t.className = "toast"; t.textContent = text; r.append(t); clearTimeout(toastT); toastT = setTimeout(() => r.innerHTML = "", 6000); }
+
+/* ---------- wiring ---------- */
+$("composer").addEventListener("submit", ev => { ev.preventDefault(); const v = $("input").value; $("input").value = ""; send(v); });
+$("input").addEventListener("keydown", ev => { if (ev.key === "Enter" && !ev.shiftKey){ ev.preventDefault(); $("composer").requestSubmit(); } });
+const CHIPS = ["What now?", "I'm bored", "Done!", "Busy saturday 14-16 football", "English essay due friday, 2h", "help"];
+for (const c of CHIPS){ const b = document.createElement("button"); b.className = "chip"; b.type = "button"; b.textContent = c; b.onclick = () => send(c.replace(/!$/,"")); $("chips").append(b); }
+$("prev").onclick = () => { viewStart = addDays(viewStart,-1); render(); };
+$("next").onclick = () => { viewStart = addDays(viewStart,1); render(); };
+$("today").onclick = () => { viewStart = dayStart(new Date()); render(); scrollToNow(); };
+function wireReset(){
+  $("reset").onclick = () => {
+    const w = $("resetwrap"); w.innerHTML = "Replace everything with the starter plan? ";
+    const y = document.createElement("button"); y.className = "btn"; y.textContent = "Yes, reset";
+    const n = document.createElement("button"); n.className = "btn"; n.textContent = "Cancel";
+    y.onclick = () => { state = starter(); autoSchedule(); save(); render(); renderChat(); restoreReset(); };
+    n.onclick = restoreReset; w.append(y, " ", n);
+  };
+}
+function restoreReset(){ $("resetwrap").innerHTML = '<button class="btn" id="reset">Reset to starter plan</button>'; wireReset(); }
+wireReset();
+let lastCols = cols();
+addEventListener("resize", () => { if (cols() !== lastCols){ lastCols = cols(); render(); } });
+function scrollToNow(){
+  const now = new Date(), h = now.getHours();
+  const target = (viewStart <= now && now < addDays(viewStart, cols())) ? Math.max(H0, h-1) : 9;
+  $("gridscroll").scrollTop = (target - H0) * 58;
+}
+setInterval(() => { renderCountdowns(); renderNow(); renderGrid(); }, 60000);
+
+// boot
+if (fresh) autoSchedule();
+save(false); render(); renderChat(); scrollToNow(); setMode();
+
+// optional powers when running inside Claude
+(async () => {
+  const use = window.claude && typeof window.claude.use === "function" ? n => window.claude.use(n).catch(() => null) : async () => null;
+  const [s, dct, db, user] = await Promise.all([use("sample"), use("dictation"), use("db"), use("user")]);
+  if (s){ sample = s; setMode(); }
+  if (dct){
+    dictation = dct; const mic = $("mic"); mic.hidden = false;
+    let listening = false;
+    dct.onFinal(({text}) => { const i = $("input"); i.value = (i.value ? i.value+" " : "") + text; });
+    dct.onState(({state:st}) => { listening = st === "listening" || st === "starting"; mic.textContent = listening ? "■" : "🎙"; mic.setAttribute("aria-label", listening ? "Stop dictation" : "Dictate"); });
+    mic.onclick = () => { if (listening) dct.stop().catch(()=>{}); else dct.start().catch(e => { if (e && e.code === "not_granted") mic.hidden = true; }); };
+  }
+  if (db && user){
+    try {
+      const id = await user.id(); if (!id) return;
+      dbDoc = db.doc(`data/users/${id}/state`);
+      const snap = await dbDoc.get();
+      if (snap.exists){
+        const remote = JSON.parse(snap.data().json || "null");
+        if (remote && remote.v === 1 && (remote.updatedAt||0) > (state.updatedAt||0)){ state = remote; render(); renderChat(); }
+      }
+      $("savestate").textContent = "Synced to your account"; if (!fresh || snap.exists) save(false); else save();
+    } catch { dbDoc = null; }
+  }
+})();
+})();
+</script>
+</body></html>
